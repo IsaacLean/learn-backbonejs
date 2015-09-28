@@ -1,0 +1,97 @@
+<html>
+	<head>
+		<title>Backbone.js</title>
+	</head>
+	<body>
+		<div id="todoapp">
+			<ul id="todo-list"></ul>
+			<input type="text" id="new-todo" placeholder="New Todo" />
+			<button id="add-todo">Add</button>
+		</div>
+
+		<!-- jQuery + Underscore + Backbone -->
+		<script src="bower_components/jquery/dist/jquery.js"></script>
+		<script src="bower_components/underscore/underscore.js"></script>
+		<script src="bower_components/backbone/backbone.js"></script>
+
+		<!-- Firebase -->
+		<script src="https://cdn.firebase.com/js/client/2.3.0/firebase.js"></script>
+
+		<!-- BackboneFire -->
+		<script src="https://cdn.firebase.com/libs/backbonefire/0.5.1/backbonefire.min.js"></script>
+
+		<script>
+			var Todo = Backbone.Model.extend({
+				defaults: { title: "New To-Do" }
+			});
+
+			// Create a Firebase.Collection and set the 'firebase' property
+			// to the URL of our database
+			var TodoCollection = Backbone.Firebase.Collection.extend({
+				model: Todo,
+				url: 'https://radiant-fire-528.firebaseio.com'
+			});
+
+			// A fiew for an individual to-do item
+			var TodoView = Backbone.View.extend({
+				tagName: 'li',
+
+				template: _.template('<%= title %>'),
+
+				initialize: function() {
+					this.listenTo(this.model, 'change', this.render);
+				},
+
+				render: function() {
+					this.$el.html(this.template(this.model.toJSON()));
+					return this;
+				}
+			});
+
+			var AppView = Backbone.View.extend({
+				el: $('#todoapp'),
+
+				events: {
+					'click #add-todo': 'createTodo'
+				},
+
+				initialize: function() {
+					this.list = this.$('#todo-list');
+					this.input = this.$('#new-todo');
+
+					// by listening to when the collection changes we
+					// can add new items in realtime
+					this.listenTo(this.collection, 'add', this.addOne);
+				},
+
+				addOne: function(todo) {
+					var view = new TodoView({model: todo});
+					this.list.append(view.render().el);
+				},
+
+				createTodo: function(e) {
+					if (!this.input.val()) { return; }
+
+					// create a new location in firebase and save the model data
+					// this will trigger the listenTo method above and a new todo
+					// will be created as well
+					this.collection.create({title: this.input.val()});
+
+					this.input.val('');
+				}
+			});
+
+			// Create a function to kick off our BackboneFireapp
+			function init() {
+				// The data we are syncing from our remote Firebase database
+				console.log('truggered');
+				var collection = new TodoCollection();
+				var app = new AppView({ collection: collection });
+			}
+
+			$(function() {
+				init();
+			});
+		</script>
+	</body>
+</html>
